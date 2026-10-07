@@ -1,6 +1,7 @@
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { drizzle as drizzleLibSql } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client";
+import { createClient as createNodeClient } from "@libsql/client";
+import { createClient as createWebClient } from "@libsql/client/web";
 import * as schema from "@/db/schema";
 import path from "path";
 
@@ -8,8 +9,8 @@ let localDbInstance: ReturnType<typeof drizzleLibSql<typeof schema>> | null = nu
 
 /**
  * Obtain Drizzle database instance.
- * In Cloudflare runtime, `d1Binding` is passed (e.g. env.DB).
- * In Node.js / Vercel Serverless / local dev / tests, `@libsql/client` connects to Turso or local SQLite.
+ * In Vercel / Production with Turso, uses @libsql/client/web over HTTPS for 100% serverless compatibility.
+ * In local dev and tests, uses @libsql/client with local sqlite / memory.
  */
 export function getDb(d1Binding?: any) {
   if (d1Binding) {
@@ -32,18 +33,20 @@ export function getDb(d1Binding?: any) {
     const tursoToken = rawToken ? rawToken.trim().replace(/^["']|["']$/g, "") : undefined;
 
     if (tursoUrl) {
-      console.log(`[DB] Initializing LibSQL client for URL: ${tursoUrl.replace(/:[^@]+@/, ":***@")}`);
-      const client = createClient({
-        url: tursoUrl,
+      const httpUrl = tursoUrl.startsWith("libsql://")
+        ? tursoUrl.replace("libsql://", "https://")
+        : tursoUrl;
+
+      const client = createWebClient({
+        url: httpUrl,
         authToken: tursoToken,
       });
       localDbInstance = drizzleLibSql(client, { schema });
     } else {
-      console.log("[DB] No TURSO_DATABASE_URL found, falling back to local file.");
       const rawPath = process.env.LOCAL_DB_PATH || path.join(process.cwd(), "local.sqlite");
       const normalizedPath = rawPath.replace(/\\/g, "/");
       const url = normalizedPath.startsWith("file:") ? normalizedPath : `file:${normalizedPath}`;
-      const client = createClient({ url });
+      const client = createNodeClient({ url });
       localDbInstance = drizzleLibSql(client, { schema });
     }
   }
@@ -55,6 +58,6 @@ export function getDb(d1Binding?: any) {
  * Creates an isolated in-memory database instance for testing.
  */
 export function createTestDb(url = ":memory:") {
-  const client = createClient({ url });
+  const client = createNodeClient({ url });
   return drizzleLibSql(client, { schema });
 }
