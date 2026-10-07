@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 interface SuperAdminHeaderProps {
   userName?: string;
@@ -25,10 +25,6 @@ export function SuperAdminHeader({ userName, userEmail }: SuperAdminHeaderProps)
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-200">
-          <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />
-          Console Super Administrateur
-        </span>
       </div>
 
       <div className="flex items-center gap-4">
