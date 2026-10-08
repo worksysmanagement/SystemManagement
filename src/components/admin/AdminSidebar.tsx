@@ -50,7 +50,7 @@ export function AdminSidebar({ role, organizationName }: AdminSidebarProps) {
               href={item.href}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive
-                  ? "text-emerald-400 font-semibold bg-slate-800/80"
+                  ? "text-indigo-400 font-semibold bg-slate-800/80"
                   : "text-slate-400 font-medium hover:text-white hover:bg-slate-800/50"
               }`}
             >

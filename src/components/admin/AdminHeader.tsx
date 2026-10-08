@@ -26,7 +26,6 @@ export function AdminHeader({ userName, userEmail, role }: AdminHeaderProps) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-700">Espace Entreprise</span>
       </div>
 
       <div className="flex items-center gap-4">
