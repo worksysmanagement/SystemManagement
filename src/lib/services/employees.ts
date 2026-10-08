@@ -11,7 +11,7 @@ export async function listEmployees(
 ): Promise<Employee[]> {
   const db = dbInstance || getDb();
 
-  // Ensure employees table exists in Turso
+  // Ensure employees table exists
   try {
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS employees (

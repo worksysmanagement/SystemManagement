@@ -14,11 +14,7 @@ export async function GET() {
     return NextResponse.json({
       status: "SUCCESS",
       connected: true,
-      message: "Connexion à la base de données Turso Cloud opérationnelle !",
-      environment: {
-        hasTursoUrl: Boolean(process.env.TURSO_DATABASE_URL || process.env.STORAGE_URL),
-        hasTursoToken: Boolean(process.env.TURSO_AUTH_TOKEN || process.env.STORAGE_AUTH_TOKEN),
-      },
+      message: "Connexion à la base de données opérationnelle !",
       organizationsCount: orgList.length,
       organizations: orgList.map((o) => ({ id: o.id, name: o.name, slug: o.slug })),
       usersCount: userList.length,
@@ -31,10 +27,6 @@ export async function GET() {
         connected: false,
         error: err?.message || String(err),
         stack: err?.stack,
-        environment: {
-          hasTursoUrl: Boolean(process.env.TURSO_DATABASE_URL || process.env.STORAGE_URL),
-          hasTursoToken: Boolean(process.env.TURSO_AUTH_TOKEN || process.env.STORAGE_AUTH_TOKEN),
-        },
       },
       { status: 500 }
     );
