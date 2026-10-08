@@ -139,7 +139,7 @@ export default function AdminDashboardPage() {
           </div>
           <Link
             href="/admin/requests"
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
             Voir toutes les demandes
             <ArrowRight className="w-3.5 h-3.5" />
@@ -196,7 +196,7 @@ export default function AdminDashboardPage() {
                     <td className="px-5 py-3.5 text-right">
                       <Link
                         href={`/admin/requests/${req.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
                       >
                         Consulter
                         <ArrowRight className="w-3 h-3" />

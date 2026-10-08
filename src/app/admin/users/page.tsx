@@ -101,7 +101,7 @@ export default function AdminUsersPage() {
 
         <button
           onClick={openCreateModal}
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2 self-start"
+          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2 self-start cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           Ajouter un utilisateur
@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs"
+              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs cursor-pointer"
             >
               {saving ? "Création en cours..." : "Créer l'utilisateur"}
             </button>

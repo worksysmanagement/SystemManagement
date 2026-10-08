@@ -23,9 +23,22 @@ interface OrganizationOption {
   logoUrl?: string | null;
 }
 
+interface EmployeeOption {
+  id: string;
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  department: string;
+  position: string;
+  phone: string;
+  email?: string | null;
+}
+
 export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: string }) {
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
 
   // Form State
   const [organizationId, setOrganizationId] = useState(preselectedOrgId || "");
@@ -74,6 +87,41 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
     }
     loadOrgs();
   }, [preselectedOrgId]);
+
+  // Fetch employees for selected organization
+  useEffect(() => {
+    async function loadEmployees() {
+      if (!organizationId) {
+        setEmployees([]);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/public/employees?organizationId=${encodeURIComponent(organizationId)}`);
+        const data = await res.json();
+        if (data.employees) {
+          setEmployees(data.employees);
+        }
+      } catch (err) {
+        console.error("Failed to load employees:", err);
+      }
+    }
+    loadEmployees();
+  }, [organizationId]);
+
+  const handleSelectEmployee = (empId: string) => {
+    setSelectedEmployeeId(empId);
+    if (!empId) return;
+    const emp = employees.find((e) => e.id === empId);
+    if (emp) {
+      setFirstName(emp.firstName);
+      setLastName(emp.lastName);
+      setEmployeeNumber(emp.employeeNumber);
+      setDepartment(emp.department);
+      setPosition(emp.position);
+      setContactPhone(emp.phone);
+      if (emp.email) setContactEmail(emp.email);
+    }
+  };
 
   // Automatic calculation of days
   useEffect(() => {
@@ -178,7 +226,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
   if (submittedData) {
     return (
       <div className="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-lg text-center animate-in fade-in">
-        <div className="flex items-center justify-center mx-auto mb-4 text-emerald-600">
+        <div className="flex items-center justify-center mx-auto mb-4 text-blue-600">
           <CheckCircle2 className="w-14 h-14" />
         </div>
 
@@ -194,19 +242,19 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
           <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-1">
             Numéro de demande
           </div>
-          <div className="text-3xl font-mono font-bold text-emerald-700">
+          <div className="text-3xl font-mono font-bold text-blue-700">
             {submittedData.requestNumber}
           </div>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-5 mb-8 text-left">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-8 text-left">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-emerald-900 text-sm">
+              <h4 className="font-semibold text-blue-900 text-sm">
                 Conservez précieusement votre lien d'accès
               </h4>
-              <p className="text-xs text-emerald-800 mt-1">
+              <p className="text-xs text-blue-800 mt-1">
                 Ce lien sécurisé et personnel vous permet de suivre en direct le statut de votre demande (en attente, approuvée ou refusée).
               </p>
             </div>
@@ -273,10 +321,30 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
 
         {/* SECTION: INFORMATIONS SUR L'EMPLOYÉ */}
         <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-2 text-emerald-800 font-semibold text-base border-b border-slate-100 pb-2">
-            <User className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-blue-900 font-semibold text-base border-b border-slate-100 pb-2">
+            <User className="w-4 h-4 text-blue-600" />
             <span>INFORMATIONS SUR L'EMPLOYÉ</span>
           </div>
+
+          {employees.length > 0 && (
+            <div className="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl">
+              <label className="block text-xs font-semibold text-blue-950 mb-1.5">
+                Sélection rapide d'un employé pré-enregistré (Optionnel)
+              </label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => handleSelectEmployee(e.target.value)}
+                className="w-full h-10 px-3 bg-white border border-blue-200 rounded-lg text-xs font-medium text-slate-800"
+              >
+                <option value="">-- Saisie manuelle ou choisir dans la liste --</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.lastName.toUpperCase()} {emp.firstName} ({emp.employeeNumber}) — {emp.department}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -355,8 +423,8 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
 
         {/* SECTION: DÉTAILS DE LA DEMANDE DE CONGÉ */}
         <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-2 text-emerald-800 font-semibold text-base border-b border-slate-100 pb-2">
-            <Calendar className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-blue-900 font-semibold text-base border-b border-slate-100 pb-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
             <span>DÉTAILS DE LA DEMANDE DE CONGÉ</span>
           </div>
 
@@ -376,7 +444,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
                   key={t.id}
                   className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                     leaveType === t.id
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-medium"
+                      ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
                       : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 text-slate-700"
                   }`}
                 >
@@ -386,7 +454,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
                     value={t.id}
                     checked={leaveType === t.id}
                     onChange={(e) => setLeaveType(e.target.value as any)}
-                    className="accent-emerald-600 w-4 h-4"
+                    className="accent-blue-600 w-4 h-4"
                   />
                   <span className="text-sm">{t.label}</span>
                 </label>
@@ -405,7 +473,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
                 value={leaveTypeOther}
                 onChange={(e) => setLeaveTypeOther(e.target.value)}
                 placeholder="Précisez la nature de votre demande..."
-                className="w-full h-11 px-3.5 border border-emerald-400 bg-emerald-50/30 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white"
+                className="w-full h-11 px-3.5 border border-blue-400 bg-blue-50/30 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white"
               />
             </div>
           )}
@@ -457,8 +525,8 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
 
         {/* SECTION: REMPLAÇANT PROPOSÉ */}
         <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-2 text-emerald-800 font-semibold text-base border-b border-slate-100 pb-2">
-            <Building className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-blue-900 font-semibold text-base border-b border-slate-100 pb-2">
+            <Building className="w-4 h-4 text-blue-600" />
             <span>REMPLAÇANT PROPOSÉ (Facultatif)</span>
           </div>
 
@@ -478,8 +546,8 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
 
         {/* SECTION: COORDONNÉES PENDANT LE CONGÉ */}
         <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-2 text-emerald-800 font-semibold text-base border-b border-slate-100 pb-2">
-            <Phone className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-blue-900 font-semibold text-base border-b border-slate-100 pb-2">
+            <Phone className="w-4 h-4 text-blue-600" />
             <span>COORDONNÉES PENDANT LE CONGÉ</span>
           </div>
 
@@ -526,7 +594,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
         {/* SECTION: SIGNATURE & CONFIRMATION */}
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-3">
           <div className="flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div className="text-xs text-slate-600">
               <strong className="text-slate-800">Signature numérique :</strong> La soumission numérique de ce formulaire fait foi d'engagement et enregistre la date, l'heure et l'empreinte de transmission.
             </div>
@@ -538,7 +606,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
               required
               checked={confirmed}
               onChange={(e) => setConfirmed(e.target.checked)}
-              className="accent-emerald-600 w-5 h-5 rounded-md mt-0.5 cursor-pointer"
+              className="accent-blue-600 w-5 h-5 rounded-md mt-0.5 cursor-pointer"
             />
             <span className="text-sm font-medium text-slate-800">
               Je confirme que les informations fournies sont exactes.
@@ -550,7 +618,7 @@ export function LeaveRequestForm({ preselectedOrgId }: { preselectedOrgId?: stri
         <button
           type="submit"
           disabled={submitting || !confirmed}
-          className="w-full py-4 px-6 min-h-[56px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-lg font-bold rounded-2xl shadow-lg shadow-emerald-700/20 hover:shadow-emerald-700/30 transition-all flex items-center justify-center gap-3 cursor-pointer"
+          className="w-full py-4 px-6 min-h-[56px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-lg font-bold rounded-2xl shadow-lg shadow-blue-700/20 hover:shadow-blue-700/30 transition-all flex items-center justify-center gap-3 cursor-pointer"
         >
           {submitting ? (
             <span className="inline-flex items-center gap-3">

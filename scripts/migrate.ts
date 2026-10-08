@@ -42,11 +42,30 @@ export async function runMigrations(dbInstance?: any) {
     )
   `);
 
-  // Leave Requests Table (Self-contained, no employees FK)
+  // Employees Table
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS employees (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES organizations(id),
+      employee_number TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      department TEXT NOT NULL,
+      position TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+
+  // Leave Requests Table
   await db.run(sql`
     CREATE TABLE IF NOT EXISTS leave_requests (
       id TEXT PRIMARY KEY,
       organization_id TEXT NOT NULL REFERENCES organizations(id),
+      employee_id TEXT REFERENCES employees(id),
       request_number TEXT NOT NULL UNIQUE,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
@@ -113,6 +132,8 @@ export async function runMigrations(dbInstance?: any) {
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS users_org_idx ON users(organization_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS users_role_idx ON users(role)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS emp_org_idx ON employees(organization_id)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS emp_org_num_idx ON employees(organization_id, employee_number)`);
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS leave_req_num_idx ON leave_requests(request_number)`);
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS leave_token_hash_idx ON leave_requests(employee_access_token_hash)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS leave_org_idx ON leave_requests(organization_id)`);
@@ -122,7 +143,7 @@ export async function runMigrations(dbInstance?: any) {
   await db.run(sql`CREATE INDEX IF NOT EXISTS notif_org_idx ON notification_logs(organization_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS notif_req_idx ON notification_logs(leave_request_id)`);
 
-  console.log("Migrations applied successfully (clean schema without employees table).");
+  console.log("Migrations applied successfully.");
 }
 
 if (require.main === module) {

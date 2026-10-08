@@ -264,7 +264,7 @@ export default function AdminRequestDetailPage() {
           {/* SECTION 1: EMPLOYEE INFO SNAPSHOT */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-              <User className="w-4 h-4 text-emerald-600" />
+              <User className="w-4 h-4 text-blue-600" />
               Informations sur l'employé (Snapshot)
             </h3>
 
@@ -295,7 +295,7 @@ export default function AdminRequestDetailPage() {
           {/* SECTION 2: LEAVE DETAILS */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-600" />
+              <Calendar className="w-4 h-4 text-blue-600" />
               Détails du congé
             </h3>
 
@@ -403,7 +403,7 @@ export default function AdminRequestDetailPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setPostDecisionWhatsAppUrl(null)}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
               >
                 <Phone className="w-4 h-4" />
                 Envoyer le verdict par WhatsApp
