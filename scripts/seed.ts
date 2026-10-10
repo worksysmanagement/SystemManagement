@@ -54,11 +54,24 @@ export async function seedDatabase(dbInstance?: any) {
   await db.insert(organizations).values([orgWelj, orgTechnozi]);
 
   // 2. USERS
+  const pitonAdminPass = await hashPassword("pitonrp8");
   const superAdminPass = await hashPassword("SuperAdmin2026!");
   const weljAdminPass = await hashPassword("Adminwelj@2026");
   const technoziPass = await hashPassword("Technozi@Haiti1234");
 
   const initialUsers = [
+    // Primary Super Admin
+    {
+      id: "usr-piton-super-admin",
+      organizationId: null,
+      name: "Rodjy Piton",
+      email: "pitonrodjy@gmail.com",
+      passwordHash: pitonAdminPass,
+      role: "SUPER_ADMIN" as const,
+      status: "ACTIVE" as const,
+      createdAt: now,
+      updatedAt: now,
+    },
     // Welj Admin
     {
       id: "usr-welj-admin",
@@ -83,7 +96,7 @@ export async function seedDatabase(dbInstance?: any) {
       createdAt: now,
       updatedAt: now,
     },
-    // Global Super Admin
+    // Global Super Admin (Backup)
     {
       id: "usr-super-admin",
       organizationId: null,
