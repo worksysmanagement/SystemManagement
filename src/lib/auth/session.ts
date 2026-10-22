@@ -5,10 +5,12 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
-  role: "SUPER_ADMIN" | "ORGANIZATION_ADMIN" | "SECRETARY";
+  role: "SUPER_ADMIN" | "ORGANIZATION_ADMIN" | "SECRETARY" | "FINANCIAL_MANAGER" | "BRANCH_MANAGER" | "EMPLOYEE" | string;
   organizationId: string | null;
   organizationName?: string;
   organizationSlug?: string;
+  branchId?: string | null;
+  branchName?: string;
 }
 
 const COOKIE_NAME = "lm_session";

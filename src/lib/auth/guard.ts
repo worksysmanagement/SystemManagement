@@ -40,6 +40,7 @@ export async function requireSuperAdmin(): Promise<SessionUser> {
 export async function requireTenantUser(): Promise<{
   user: SessionUser;
   organizationId: string;
+  branchId?: string | null;
 }> {
   const session = await requireAuth();
   if (session.role === "SUPER_ADMIN" || !session.organizationId) {
@@ -48,6 +49,7 @@ export async function requireTenantUser(): Promise<{
   return {
     user: session,
     organizationId: session.organizationId,
+    branchId: session.branchId || null,
   };
 }
 
@@ -57,11 +59,32 @@ export async function requireTenantUser(): Promise<{
 export async function requireOrgAdmin(): Promise<{
   user: SessionUser;
   organizationId: string;
+  branchId?: string | null;
 }> {
   const tenantContext = await requireTenantUser();
   if (tenantContext.user.role !== "ORGANIZATION_ADMIN") {
     throw new AuthError("Action réservée à l'administrateur de l'entreprise", 403);
   }
+  return tenantContext;
+}
+
+/**
+ * Ensures user is authorized to approve or reject requests.
+ * Standard employees / collaborateurs cannot approve or reject.
+ */
+export async function requireRequestApprover(): Promise<{
+  user: SessionUser;
+  organizationId: string;
+  branchId?: string | null;
+}> {
+  const tenantContext = await requireTenantUser();
+  const role = tenantContext.user.role;
+  const isEmployee = role === "EMPLOYEE" || role === "COLLABORATEUR";
+
+  if (isEmployee) {
+    throw new AuthError("Action non autorisée : les collaborateurs ne peuvent pas valider ni rejeter de demandes.", 403);
+  }
+
   return tenantContext;
 }
 

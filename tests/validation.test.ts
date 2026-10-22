@@ -5,6 +5,10 @@ import {
   loginSchema,
   rejectLeaveRequestSchema,
 } from "../src/lib/validation/schemas";
+import {
+  getNextMatriculeSequence,
+  generateEmployeeMatricule,
+} from "../src/lib/utils/matricule";
 
 describe("Zod Validation Schemas Test Suite", () => {
   it("Validates successful leave request input", () => {
@@ -98,5 +102,24 @@ describe("Zod Validation Schemas Test Suite", () => {
       slug: "ENTREPRISE ALPHA!!", // Spaces and uppercase not allowed
     };
     expect(createOrganizationSchema.safeParse(invalidSlug).success).toBe(false);
+  });
+
+  it("Increments employee matricule sequentially and prevents duplicates", () => {
+    // 1. Initial state: starts at 001
+    expect(getNextMatriculeSequence([])).toBe("001");
+    expect(generateEmployeeMatricule("e-biznis", "SIEGE", getNextMatriculeSequence([]))).toBe("EB-SIEGE-001");
+
+    // 2. Increment: 001 exists -> 002
+    expect(getNextMatriculeSequence(["EB-SIEGE-001"])).toBe("002");
+    expect(generateEmployeeMatricule("e-biznis", "SIEGE", getNextMatriculeSequence(["EB-SIEGE-001"]))).toBe("EB-SIEGE-002");
+
+    // 3. Multi-increment: 001, 002 exist -> 003
+    expect(getNextMatriculeSequence(["EB-SIEGE-001", "EB-SIEGE-002"])).toBe("003");
+
+    // 4. Safe against legacy random matricules: with EB-SIEGE-884, allocates 001
+    expect(getNextMatriculeSequence(["EB-SIEGE-884"])).toBe("001");
+
+    // 5. When 001 and legacy 884 exist, allocates 002 without collision
+    expect(getNextMatriculeSequence(["EB-SIEGE-001", "EB-SIEGE-884"])).toBe("002");
   });
 });

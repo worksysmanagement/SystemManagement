@@ -15,6 +15,11 @@ export const organizations = sqliteTable(
     phone: text("phone"),
     address: text("address"),
     status: text("status", { enum: ["ACTIVE", "DISABLED"] }).notNull().default("ACTIVE"),
+    matriculeFormat: text("matricule_format").default("INITIALS_BRANCH_SEQ"),
+    matriculePrefix: text("matricule_prefix"),
+    primaryCurrency: text("primary_currency").default("HTG"),
+    dateFormat: text("date_format").default("DD/MM/YYYY"),
+    language: text("language").default("fr"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
@@ -32,10 +37,11 @@ export const users = sqliteTable(
   {
     id: text("id").primaryKey(),
     organizationId: text("organization_id").references(() => organizations.id),
+    branchId: text("branch_id").references(() => branches.id),
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
-    role: text("role", { enum: ["SUPER_ADMIN", "ORGANIZATION_ADMIN", "SECRETARY"] }).notNull(),
+    role: text("role").notNull(),
     status: text("status", { enum: ["ACTIVE", "DISABLED"] }).notNull().default("ACTIVE"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
@@ -43,6 +49,7 @@ export const users = sqliteTable(
   (table) => [
     uniqueIndex("users_email_idx").on(table.email),
     index("users_org_idx").on(table.organizationId),
+    index("users_branch_idx").on(table.branchId),
     index("users_role_idx").on(table.role),
   ]
 );
@@ -57,19 +64,28 @@ export const employees = sqliteTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id),
+    branchId: text("branch_id").references(() => branches.id),
     employeeNumber: text("employee_number").notNull(),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    department: text("department").notNull(),
-    position: text("position").notNull(),
+    department: text("department"),
+    position: text("position"),
     phone: text("phone").notNull(),
     email: text("email"),
+    birthDate: text("birth_date"),
+    studyDomain: text("study_domain"),
+    bloodGroup: text("blood_group"),
+    medicalNotes: text("medical_notes"),
+    emergencyContactName: text("emergency_contact_name"),
+    emergencyContactRelation: text("emergency_contact_relation"),
+    emergencyContactPhone: text("emergency_contact_phone"),
     status: text("status", { enum: ["ACTIVE", "INACTIVE"] }).notNull().default("ACTIVE"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
   (table) => [
     index("emp_org_idx").on(table.organizationId),
+    index("emp_branch_idx").on(table.branchId),
     index("emp_org_num_idx").on(table.organizationId, table.employeeNumber),
   ]
 );
@@ -84,6 +100,7 @@ export const leaveRequests = sqliteTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id),
+    branchId: text("branch_id").references(() => branches.id),
     employeeId: text("employee_id").references(() => employees.id),
     requestNumber: text("request_number").notNull().unique(), // e.g. CONG-2026-0001
     firstName: text("first_name").notNull(),
@@ -195,17 +212,23 @@ export const notificationLogs = sqliteTable(
 // RELATIONS
 // ----------------------------------------------------
 export const organizationsRelations = relations(organizations, ({ many }) => ({
+  branches: many(branches),
   users: many(users),
   employees: many(employees),
   leaveRequests: many(leaveRequests),
   auditLogs: many(auditLogs),
   notificationLogs: many(notificationLogs),
+  roles: many(organizationRoles),
 }));
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [employees.organizationId],
     references: [organizations.id],
+  }),
+  branch: one(branches, {
+    fields: [employees.branchId],
+    references: [branches.id],
   }),
   leaveRequests: many(leaveRequests),
 }));
@@ -257,6 +280,42 @@ export const notificationLogsRelations = relations(notificationLogs, ({ one }) =
   }),
 }));
 
+// ----------------------------------------------------
+// BRANCHES (Succursales)
+// ----------------------------------------------------
+export const branches = sqliteTable(
+  "branches",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    city: text("city").notNull(),
+    address: text("address"),
+    managerName: text("manager_name"),
+    phone: text("phone"),
+    status: text("status", { enum: ["ACTIVE", "INACTIVE"] }).notNull().default("ACTIVE"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("branches_org_idx").on(table.organizationId),
+    index("branches_status_idx").on(table.status),
+  ]
+);
+
+export const branchesRelations = relations(branches, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [branches.organizationId],
+    references: [organizations.id],
+  }),
+  employees: many(employees),
+  users: many(users),
+  leaveRequests: many(leaveRequests),
+}));
+
 // Export types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = typeof organizations.$inferInsert;
@@ -275,3 +334,36 @@ export type InsertAuditLog = typeof auditLogs.$inferInsert;
 
 export type NotificationLog = typeof notificationLogs.$inferSelect;
 export type InsertNotificationLog = typeof notificationLogs.$inferInsert;
+
+export type Branch = typeof branches.$inferSelect;
+export type InsertBranch = typeof branches.$inferInsert;
+
+// ----------------------------------------------------
+// ORGANIZATION ROLES (Custom roles per tenant)
+// ----------------------------------------------------
+export const organizationRoles = sqliteTable(
+  "organization_roles",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    name: text("name").notNull(),
+    description: text("description"),
+    hierarchyLevel: text("hierarchy_level", {
+      enum: ["DIRECTION", "MANAGEMENT", "SUPERVISOR", "OPERATIONAL"],
+    })
+      .notNull()
+      .default("OPERATIONAL"),
+    isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
+    permissions: text("permissions").notNull(), // JSON stringified TabPermission map
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("roles_org_idx").on(table.organizationId),
+  ]
+);
+
+export type OrganizationRole = typeof organizationRoles.$inferSelect;
+export type InsertOrganizationRole = typeof organizationRoles.$inferInsert;

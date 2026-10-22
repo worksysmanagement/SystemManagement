@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
 
     const { email, password } = parseResult.data;
     const normalizedEmail = email.toLowerCase().trim();
-    const db = getDb();
 
     // 1. Find user by email (or alias for superadmin)
     const emailVariations = [normalizedEmail];
@@ -37,10 +36,29 @@ export async function POST(req: NextRequest) {
       emailVariations.push("superadmin@platform.local", "superadmin@plateform.local", "superadmin@plateforme.local");
     }
 
-    const allUsers = await db.select().from(users);
-    const user = allUsers.find(
-      (u) => emailVariations.includes(u.email.toLowerCase()) && u.status === "ACTIVE"
-    );
+    let user: any = null;
+    try {
+      const supabase = (await import("@/lib/supabase/server")).getSupabaseAdminClient();
+      const { data: dbUsers } = await supabase.from("users").select("*");
+      if (dbUsers && dbUsers.length > 0) {
+        const found = dbUsers.find(
+          (u) => emailVariations.includes(u.email.toLowerCase()) && u.status === "ACTIVE"
+        );
+        if (found) {
+          const { mapUser } = await import("@/lib/supabase/db");
+          user = mapUser(found);
+        }
+      }
+    } catch (_) {}
+
+    // Fallback if not found in Supabase
+    if (!user) {
+      const db = getDb();
+      const allUsers = await db.select().from(users);
+      user = allUsers.find(
+        (u) => emailVariations.includes(u.email.toLowerCase()) && u.status === "ACTIVE"
+      );
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -54,11 +72,29 @@ export async function POST(req: NextRequest) {
     let organizationSlug: string | undefined;
 
     if (user.organizationId) {
-      const [org] = await db
-        .select()
-        .from(organizations)
-        .where(eq(organizations.id, user.organizationId))
-        .limit(1);
+      let org: any = null;
+      try {
+        const supabase = (await import("@/lib/supabase/server")).getSupabaseAdminClient();
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", user.organizationId)
+          .maybeSingle();
+        if (orgData) {
+          const { mapOrg } = await import("@/lib/supabase/db");
+          org = mapOrg(orgData);
+        }
+      } catch (_) {}
+
+      if (!org) {
+        const db = getDb();
+        const [dbOrg] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, user.organizationId))
+          .limit(1);
+        org = dbOrg;
+      }
 
       if (!org || org.status !== "ACTIVE") {
         return NextResponse.json(
@@ -79,6 +115,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let branchName: string | undefined;
+    if (user.branchId && user.organizationId) {
+      try {
+        const supabase = (await import("@/lib/supabase/server")).getSupabaseAdminClient();
+        const { data: bData } = await supabase
+          .from("branches")
+          .select("name")
+          .eq("id", user.branchId)
+          .maybeSingle();
+        if (bData) branchName = bData.name;
+      } catch (_) {}
+    }
+
     // 4. Set session cookie
     await setSessionCookie({
       id: user.id,
@@ -88,6 +137,8 @@ export async function POST(req: NextRequest) {
       organizationId: user.organizationId,
       organizationName,
       organizationSlug,
+      branchId: user.branchId || null,
+      branchName,
     });
 
     return NextResponse.json({
@@ -99,6 +150,8 @@ export async function POST(req: NextRequest) {
         role: user.role,
         organizationId: user.organizationId,
         organizationName,
+        branchId: user.branchId || null,
+        branchName,
       },
     });
   } catch (err: any) {

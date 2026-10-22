@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" preserveAspectRatio="none" fill="none">
+  <defs>
+    <!-- Corporate Deep Navy Gradient -->
+    <linearGradient id="bgNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#062247" />
+      <stop offset="50%" stop-color="#041B3B" />
+      <stop offset="100%" stop-color="#021226" />
+    </linearGradient>
+
+    <!-- Subtle Orange Brand Accent for corner -->
+    <linearGradient id="orangeCorner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A00" />
+      <stop offset="100%" stop-color="#E66500" />
+    </linearGradient>
+
+    <!-- Fade mask to keep left text area completely clean and dark -->
+    <linearGradient id="fadeToRight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="white" stop-opacity="0" />
+      <stop offset="38%" stop-color="white" stop-opacity="0" />
+      <stop offset="55%" stop-color="white" stop-opacity="0.3" />
+      <stop offset="75%" stop-color="white" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="white" stop-opacity="1" />
+    </linearGradient>
+
+    <mask id="textProtectionMask">
+      <rect width="800" height="1200" fill="url(#fadeToRight)" />
+    </mask>
+  </defs>
+
+  <!-- 1. Background -->
+  <rect width="800" height="1200" fill="url(#bgNavy)" />
+
+  <!-- 2. Lines Group: Thin (1px), Subtle (opacity ~0.25), Protected by Mask so zero lines touch the text -->
+  <g mask="url(#textProtectionMask)">
+    <!-- Top-Right Cross Waves (delicate lattice) -->
+    <g stroke="#2678B8" stroke-width="1.0" opacity="0.3" fill="none">
+    <path d="M 420 -60 C 520 100.0, 680 70, 860 30.0" />
+    <path d="M 445 -60 C 545 119.6, 695 98, 860 60.800000000000004" />
+    <path d="M 470 -60 C 570 139.2, 710 126, 860 91.60000000000001" />
+    <path d="M 495 -60 C 595 158.8, 725 154, 860 122.4" />
+    <path d="M 520 -60 C 620 178.39999999999998, 740 182, 860 153.20000000000002" />
+    <path d="M 545 -60 C 645 198.0, 755 210, 860 184.0" />
+    <path d="M 570 -60 C 670 217.6, 770 238, 860 214.8" />
+    <path d="M 595 -60 C 695 237.2, 785 266, 860 245.60000000000002" />
+    <path d="M 620 -60 C 720 256.79999999999995, 800 294, 860 276.40000000000003" />
+    <path d="M 645 -60 C 745 276.4, 815 322, 860 307.20000000000005" />
+    </g>
+
+    <!-- Flowing S-Curves along the right flank -->
+    <g stroke="#2678B8" stroke-width="1.1" opacity="0.35" fill="none">
+    <path d="M 560 -60 C 440 280, 400 540, 480 740 C 580 940, 520 1120, 400 1260" />
+    <path d="M 582 -60 C 462 280, 422 540, 502 740 C 602 940, 542 1120, 422 1260" />
+    <path d="M 604 -60 C 484 280, 444 540, 524 740 C 624 940, 564 1120, 444 1260" />
+    <path d="M 626 -60 C 506 280, 466 540, 546 740 C 646 940, 586 1120, 466 1260" />
+    <path d="M 648 -60 C 528 280, 488 540, 568 740 C 668 940, 608 1120, 488 1260" />
+    <path d="M 670 -60 C 550 280, 510 540, 590 740 C 690 940, 630 1120, 510 1260" />
+    <path d="M 692 -60 C 572 280, 532 540, 612 740 C 712 940, 652 1120, 532 1260" />
+    <path d="M 714 -60 C 594 280, 554 540, 634 740 C 734 940, 674 1120, 554 1260" />
+    <path d="M 736 -60 C 616 280, 576 540, 656 740 C 756 940, 696 1120, 576 1260" />
+    <path d="M 758 -60 C 638 280, 598 540, 678 740 C 778 940, 718 1120, 598 1260" />
+    <path d="M 780 -60 C 660 280, 620 540, 700 740 C 800 940, 740 1120, 620 1260" />
+    <path d="M 802 -60 C 682 280, 642 540, 722 740 C 822 940, 762 1120, 642 1260" />
+    </g>
+  </g>
+
+  <!-- 3. Small discreet organic orange curve in the very bottom-right corner -->
+  <path d="M 680 1200 C 715 1135, 755 1105, 800 1095 L 800 1200 Z" fill="url(#orangeCorner)" opacity="0.95" />
+</svg>

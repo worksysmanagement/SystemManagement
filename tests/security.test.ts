@@ -119,4 +119,21 @@ describe("Security Hardening & Cryptography Tests", () => {
     expect(r3.allowed).toBe(true);
     expect(r4.allowed).toBe(false);
   });
+
+  it("Validates password transition and rejects invalid current passwords", async () => {
+    const originalPassword = "InitialPassword123!";
+    const newPassword = "NewSecurePassword456#";
+    const hashed = await hashPassword(originalPassword);
+
+    // Current password must match before accepting new password
+    const isOldCorrect = await verifyPassword("WrongPassword!", hashed);
+    expect(isOldCorrect).toBe(false);
+
+    const isActualOldCorrect = await verifyPassword(originalPassword, hashed);
+    expect(isActualOldCorrect).toBe(true);
+
+    const newHashed = await hashPassword(newPassword);
+    expect(await verifyPassword(newPassword, newHashed)).toBe(true);
+    expect(await verifyPassword(originalPassword, newHashed)).toBe(false);
+  });
 });

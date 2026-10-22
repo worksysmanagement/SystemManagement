@@ -3,16 +3,21 @@ import { users, User, InsertUser } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { CreateOrgUserInput } from "@/lib/validation/schemas";
 import { hashPassword } from "@/lib/auth/password";
+import { supabaseDb } from "@/lib/supabase/db";
 
 export async function listOrgUsers(
   organizationId: string,
   dbInstance?: any
 ): Promise<Omit<User, "passwordHash">[]> {
+  if (!dbInstance) {
+    return await supabaseDb.users.listByOrg(organizationId);
+  }
   const db = dbInstance || getDb();
   return await db
     .select({
       id: users.id,
       organizationId: users.organizationId,
+      branchId: users.branchId,
       name: users.name,
       email: users.email,
       role: users.role,
@@ -30,6 +35,9 @@ export async function createOrgUser(
   input: CreateOrgUserInput,
   dbInstance?: any
 ): Promise<Omit<User, "passwordHash">> {
+  if (!dbInstance) {
+    return await supabaseDb.users.createOrgUser(organizationId, input);
+  }
   const db = dbInstance || getDb();
 
   // Check unique email
@@ -50,6 +58,7 @@ export async function createOrgUser(
   const insertData: InsertUser = {
     id: newId,
     organizationId,
+    branchId: input.branchId || null,
     name: input.name,
     email: input.email.toLowerCase(),
     passwordHash,
@@ -65,6 +74,7 @@ export async function createOrgUser(
     .select({
       id: users.id,
       organizationId: users.organizationId,
+      branchId: users.branchId,
       name: users.name,
       email: users.email,
       role: users.role,
@@ -77,4 +87,30 @@ export async function createOrgUser(
     .limit(1);
 
   return created;
+}
+
+export async function getUserByEmail(email: string, dbInstance?: any): Promise<User | null> {
+  if (!dbInstance) {
+    return await supabaseDb.users.getByEmail(email);
+  }
+  const db = dbInstance || getDb();
+  const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim())).limit(1);
+  return user || null;
+}
+
+export async function getUserById(id: string, dbInstance?: any): Promise<User | null> {
+  if (!dbInstance) {
+    return await supabaseDb.users.getById(id);
+  }
+  const db = dbInstance || getDb();
+  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return user || null;
+}
+
+export async function updateUserStatus(id: string, status: "ACTIVE" | "DISABLED", dbInstance?: any): Promise<void> {
+  if (!dbInstance) {
+    return await supabaseDb.users.updateStatus(id, status);
+  }
+  const db = dbInstance || getDb();
+  await db.update(users).set({ status, updatedAt: Date.now() }).where(eq(users.id, id));
 }

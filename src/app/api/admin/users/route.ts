@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOrgAdmin, handleApiError } from "@/lib/auth/guard";
+import { requireOrgAdmin, requireTenantUser, handleApiError } from "@/lib/auth/guard";
 import { listOrgUsers, createOrgUser } from "@/lib/services/users";
 import { createOrgUserSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
   try {
-    const { organizationId } = await requireOrgAdmin();
+    const { organizationId } = await requireTenantUser();
     const usersList = await listOrgUsers(organizationId);
     return NextResponse.json({ users: usersList });
   } catch (err) {

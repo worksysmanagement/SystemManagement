@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db/client";
-import { organizations, users } from "@/db/schema";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const hasSupabaseKeys = Boolean(supabaseUrl && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const hasSupabaseKeys = Boolean(supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   let supabaseStatus = {
     configured: hasSupabaseKeys,
@@ -16,43 +14,49 @@ export async function GET() {
     error: null as string | null,
   };
 
-  if (hasSupabaseKeys) {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.from("organizations").select("id").limit(1);
-      if (error) {
-        supabaseStatus.error = error.message;
-      } else {
-        supabaseStatus.connected = true;
-      }
-    } catch (err: any) {
-      supabaseStatus.error = err?.message || String(err);
-    }
-  }
-
   try {
-    const db = getDb();
-    const orgList = await db.select().from(organizations);
-    const userList = await db.select({ id: users.id, email: users.email, role: users.role }).from(users);
+    const supabase = getSupabaseAdminClient();
+    const { data: orgs, error: orgErr } = await supabase
+      .from("organizations")
+      .select("id, name, slug, status")
+      .order("name", { ascending: true });
+
+    if (orgErr) {
+      supabaseStatus.error = orgErr.message;
+      throw new Error(orgErr.message);
+    }
+
+    const { data: userList, error: userErr } = await supabase
+      .from("users")
+      .select("id, email, role, status")
+      .order("email", { ascending: true });
+
+    if (userErr) {
+      supabaseStatus.error = userErr.message;
+      throw new Error(userErr.message);
+    }
+
+    supabaseStatus.connected = true;
 
     return NextResponse.json({
       status: "SUCCESS",
       connected: true,
-      message: "Connexion à la base de données opérationnelle !",
+      database: "SUPABASE CLOUD",
+      message: "Connexion directe à la base de données Supabase opérationnelle !",
       supabase: supabaseStatus,
-      organizationsCount: orgList.length,
-      organizations: orgList.map((o) => ({ id: o.id, name: o.name, slug: o.slug })),
-      usersCount: userList.length,
-      users: userList,
+      organizationsCount: orgs?.length || 0,
+      organizations: orgs || [],
+      usersCount: userList?.length || 0,
+      users: userList || [],
     });
   } catch (err: any) {
     return NextResponse.json(
       {
         status: "ERROR",
         connected: false,
+        database: "SUPABASE CLOUD",
         supabase: supabaseStatus,
         error: err?.message || String(err),
-        stack: err?.stack,
       },
       { status: 500 }
     );

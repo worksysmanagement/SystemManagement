@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 }
 
 export function Modal({
@@ -39,7 +39,9 @@ export function Modal({
     md: "max-w-md",
     lg: "max-w-lg",
     xl: "max-w-xl",
-  }[maxWidth];
+    "2xl": "max-w-2xl",
+    "3xl": "max-w-3xl",
+  }[maxWidth] || "max-w-md";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

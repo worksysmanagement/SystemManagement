@@ -10,6 +10,8 @@ export async function runMigrations(dbInstance?: any) {
   await db.run(sql`DROP TABLE IF EXISTS audit_logs`);
   await db.run(sql`DROP TABLE IF EXISTS leave_requests`);
   await db.run(sql`DROP TABLE IF EXISTS employees`);
+  await db.run(sql`DROP TABLE IF EXISTS users`);
+  await db.run(sql`DROP TABLE IF EXISTS branches`);
 
   // Organizations Table
   await db.run(sql`
@@ -22,6 +24,28 @@ export async function runMigrations(dbInstance?: any) {
       phone TEXT,
       address TEXT,
       status TEXT NOT NULL DEFAULT 'ACTIVE',
+      matricule_format TEXT DEFAULT 'INITIALS_BRANCH_SEQ',
+      matricule_prefix TEXT,
+      primary_currency TEXT DEFAULT 'HTG',
+      date_format TEXT DEFAULT 'DD/MM/YYYY',
+      language TEXT DEFAULT 'fr',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+
+  // Branches Table
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS branches (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES organizations(id),
+      code TEXT NOT NULL,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      address TEXT,
+      manager_name TEXT,
+      phone TEXT,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
@@ -32,6 +56,7 @@ export async function runMigrations(dbInstance?: any) {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       organization_id TEXT REFERENCES organizations(id),
+      branch_id TEXT REFERENCES branches(id),
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
@@ -47,6 +72,7 @@ export async function runMigrations(dbInstance?: any) {
     CREATE TABLE IF NOT EXISTS employees (
       id TEXT PRIMARY KEY,
       organization_id TEXT NOT NULL REFERENCES organizations(id),
+      branch_id TEXT REFERENCES branches(id),
       employee_number TEXT NOT NULL,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
@@ -65,6 +91,7 @@ export async function runMigrations(dbInstance?: any) {
     CREATE TABLE IF NOT EXISTS leave_requests (
       id TEXT PRIMARY KEY,
       organization_id TEXT NOT NULL REFERENCES organizations(id),
+      branch_id TEXT REFERENCES branches(id),
       employee_id TEXT REFERENCES employees(id),
       request_number TEXT NOT NULL UNIQUE,
       first_name TEXT NOT NULL,
@@ -129,14 +156,19 @@ export async function runMigrations(dbInstance?: any) {
   // Indexes
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS org_slug_idx ON organizations(slug)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS org_status_idx ON organizations(status)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS branches_org_idx ON branches(organization_id)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS branches_status_idx ON branches(status)`);
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS users_org_idx ON users(organization_id)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS users_branch_idx ON users(branch_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS users_role_idx ON users(role)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS emp_org_idx ON employees(organization_id)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS emp_branch_idx ON employees(branch_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS emp_org_num_idx ON employees(organization_id, employee_number)`);
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS leave_req_num_idx ON leave_requests(request_number)`);
   await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS leave_token_hash_idx ON leave_requests(employee_access_token_hash)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS leave_org_idx ON leave_requests(organization_id)`);
+  await db.run(sql`CREATE INDEX IF NOT EXISTS leave_branch_idx ON leave_requests(branch_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS leave_org_status_idx ON leave_requests(organization_id, status)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS audit_org_idx ON audit_logs(organization_id)`);
   await db.run(sql`CREATE INDEX IF NOT EXISTS audit_req_idx ON audit_logs(leave_request_id)`);

@@ -14,6 +14,31 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ employees: [] });
     }
 
+    try {
+      const supabase = (await import("@/lib/supabase/server")).getSupabaseAdminClient();
+      const { data: supaEmps } = await supabase
+        .from("employees")
+        .select("id, employee_number, first_name, last_name, department, position, phone, email")
+        .eq("organization_id", organizationId)
+        .eq("status", "ACTIVE")
+        .order("last_name", { ascending: true })
+        .order("first_name", { ascending: true });
+
+      if (supaEmps && supaEmps.length > 0) {
+        const mapped = supaEmps.map((e) => ({
+          id: e.id,
+          employeeNumber: e.employee_number,
+          firstName: e.first_name,
+          lastName: e.last_name,
+          department: e.department,
+          position: e.position,
+          phone: e.phone,
+          email: e.email,
+        }));
+        return NextResponse.json({ employees: mapped });
+      }
+    } catch (_) {}
+
     const db = getDb();
 
     // Ensure table exists

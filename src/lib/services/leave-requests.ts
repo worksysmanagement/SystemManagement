@@ -10,6 +10,7 @@ import { eq, and, desc, sql, like, or } from "drizzle-orm";
 import { generateSecureToken, hashToken, generateRequestNumber } from "@/lib/security/tokens";
 import { SubmitLeaveRequestInput } from "@/lib/validation/schemas";
 import { notifySecretaryNewRequest, notifyEmployeeDecision } from "@/lib/notifications/service";
+import { supabaseDb } from "@/lib/supabase/db";
 
 export interface CreateLeaveRequestResult {
   leaveRequest: LeaveRequest;
@@ -21,6 +22,13 @@ export async function createLeaveRequest(
   meta?: { ip?: string; userAgent?: string },
   dbInstance?: any
 ): Promise<CreateLeaveRequestResult> {
+  if (!dbInstance) {
+    const res = await supabaseDb.leaveRequests.create(input, meta);
+    try {
+      await notifySecretaryNewRequest(res.leaveRequest.id, res.rawAccessToken);
+    } catch (_) {}
+    return res;
+  }
   const db = dbInstance || getDb();
   const now = Date.now();
 
@@ -134,6 +142,9 @@ export async function createLeaveRequest(
  * Never exposes internal tokens or secrets.
  */
 export async function getLeaveRequestByToken(rawToken: string, dbInstance?: any) {
+  if (!dbInstance) {
+    return await supabaseDb.leaveRequests.getByToken(rawToken);
+  }
   const db = dbInstance || getDb();
   const tokenHash = await hashToken(rawToken);
 
@@ -168,6 +179,24 @@ export async function getLeaveRequestByToken(rawToken: string, dbInstance?: any)
     )
     .limit(1);
 
+  if (req && req.status === "APPROVED") {
+    const [audit] = await db
+      .select({ metadata: auditLogs.metadata })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.leaveRequestId, req.id), eq(auditLogs.action, "APPROVED")))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(1);
+
+    if (audit?.metadata) {
+      try {
+        const meta = JSON.parse(audit.metadata);
+        (req as any).signatureUrl = meta.signatureUrl;
+        (req as any).signerName = meta.signerName;
+        (req as any).signerRole = meta.signerRole;
+      } catch (_) {}
+    }
+  }
+
   return req || null;
 }
 
@@ -175,12 +204,33 @@ export async function getLeaveRequestByToken(rawToken: string, dbInstance?: any)
  * Tenant-scoped query for request details.
  */
 export async function getLeaveRequestById(id: string, organizationId: string, dbInstance?: any) {
+  if (!dbInstance) {
+    return await supabaseDb.leaveRequests.getById(id);
+  }
   const db = dbInstance || getDb();
   const [req] = await db
     .select()
     .from(leaveRequests)
     .where(and(eq(leaveRequests.id, id), eq(leaveRequests.organizationId, organizationId)))
     .limit(1);
+
+  if (req && req.status === "APPROVED") {
+    const [audit] = await db
+      .select({ metadata: auditLogs.metadata })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.leaveRequestId, req.id), eq(auditLogs.action, "APPROVED")))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(1);
+
+    if (audit?.metadata) {
+      try {
+        const meta = JSON.parse(audit.metadata);
+        (req as any).signatureUrl = meta.signatureUrl;
+        (req as any).signerName = meta.signerName;
+        (req as any).signerRole = meta.signerRole;
+      } catch (_) {}
+    }
+  }
 
   return req || null;
 }
@@ -195,9 +245,27 @@ export async function listLeaveRequests(
     limit?: number;
     status?: "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
     search?: string;
+    employeeNumber?: string;
+    contactEmail?: string;
   } = {},
   dbInstance?: any
 ) {
+  if (!dbInstance) {
+    const all = await supabaseDb.leaveRequests.list(organizationId, options);
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10));
+    const offset = (page - 1) * limit;
+    const items = all.slice(offset, offset + limit);
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total: all.length,
+        totalPages: Math.ceil(all.length / limit),
+      },
+    };
+  }
   const db = dbInstance || getDb();
   const page = Math.max(1, options.page || 1);
   const limit = Math.min(100, Math.max(1, options.limit || 10));
@@ -207,6 +275,14 @@ export async function listLeaveRequests(
 
   if (options.status && options.status !== "ALL") {
     conditions.push(eq(leaveRequests.status, options.status));
+  }
+
+  if (options.employeeNumber) {
+    conditions.push(eq(leaveRequests.employeeNumber, options.employeeNumber));
+  }
+
+  if (options.contactEmail) {
+    conditions.push(like(leaveRequests.contactEmail, options.contactEmail));
   }
 
   if (options.search && options.search.trim().length > 0) {
@@ -259,9 +335,30 @@ export async function approveLeaveRequest(
   organizationId: string,
   userId: string,
   comment?: string,
+  signatureDataOrDb?: {
+    signatureUrl?: string;
+    signerName?: string;
+    signerRole?: string;
+  } | any,
   dbInstance?: any
 ): Promise<{ success: boolean; leaveRequest: LeaveRequest }> {
-  const db = dbInstance || getDb();
+  let signatureData: { signatureUrl?: string; signerName?: string; signerRole?: string } | undefined;
+  let resolvedDb = dbInstance;
+
+  if (signatureDataOrDb && (typeof signatureDataOrDb.select === "function" || typeof signatureDataOrDb.run === "function")) {
+    resolvedDb = signatureDataOrDb;
+  } else if (signatureDataOrDb) {
+    signatureData = signatureDataOrDb;
+  }
+
+  if (!resolvedDb) {
+    const updated = await supabaseDb.leaveRequests.approve(id, organizationId, userId, comment, signatureData);
+    try {
+      await notifyEmployeeDecision(id, updated.employeeAccessTokenHash);
+    } catch (_) {}
+    return { success: true, leaveRequest: updated };
+  }
+  const db = resolvedDb;
   const now = Date.now();
 
   // Strict atomic check: must belong to tenant AND status must be PENDING
@@ -297,7 +394,12 @@ export async function approveLeaveRequest(
     action: "APPROVED",
     oldStatus: "PENDING",
     newStatus: "APPROVED",
-    metadata: JSON.stringify({ comment }),
+    metadata: JSON.stringify({
+      comment,
+      signatureUrl: signatureData?.signatureUrl,
+      signerName: signatureData?.signerName,
+      signerRole: signatureData?.signerRole,
+    }),
     createdAt: now,
   });
 
@@ -324,6 +426,14 @@ export async function rejectLeaveRequest(
 ): Promise<{ success: boolean; leaveRequest: LeaveRequest }> {
   if (!rejectionReason || rejectionReason.trim().length < 3) {
     throw new Error("La raison du refus est obligatoire");
+  }
+
+  if (!dbInstance) {
+    const updated = await supabaseDb.leaveRequests.reject(id, organizationId, userId, rejectionReason, comment);
+    try {
+      await notifyEmployeeDecision(id, updated.employeeAccessTokenHash);
+    } catch (_) {}
+    return { success: true, leaveRequest: updated };
   }
 
   const db = dbInstance || getDb();
@@ -375,4 +485,14 @@ export async function rejectLeaveRequest(
   }
 
   return { success: true, leaveRequest: updated };
+}
+
+export async function deleteLeaveRequest(id: string, organizationId: string): Promise<void> {
+  const db = getDb();
+  try {
+    await db
+      .delete(leaveRequests)
+      .where(and(eq(leaveRequests.id, id), eq(leaveRequests.organizationId, organizationId)));
+  } catch (_) {}
+  await supabaseDb.leaveRequests.delete(id, organizationId);
 }

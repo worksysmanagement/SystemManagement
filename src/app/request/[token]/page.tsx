@@ -249,6 +249,55 @@ export default function EmployeeRequestStatusPage() {
             </div>
           </div>
 
+          {/* OFFICIAL VISA & DIRECTION STAMP (Visible on screen when Approved) */}
+          {isApproved && (
+            <div className="p-4 bg-gradient-to-r from-emerald-50/70 to-slate-50 border border-emerald-200/80 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Visa & Décision de la Direction
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
+                  Document Certifié
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="text-xs text-slate-600">
+                  <p className="font-semibold text-slate-800">
+                    Approuvé électroniquement par {request.signerName || "La Direction"}
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    {request.signerRole ? `Rôle : ${request.signerRole} • ` : ""}
+                    Réf : <span className="font-mono font-semibold">{request.requestNumber}</span>
+                  </p>
+                  {request.decidedAt && (
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Date de validation : {new Date(request.decidedAt).toLocaleString("fr-FR")}
+                    </p>
+                  )}
+                </div>
+
+                {request.signatureUrl && (
+                  <div className="self-end sm:self-center flex flex-col items-center">
+                    <div className="h-14 w-36 flex items-center justify-center p-1 relative">
+                      <img
+                        src={request.signatureUrl}
+                        alt="Signature transparente officielle"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="text-[9px] font-mono text-slate-400 border-t border-dashed border-slate-300 pt-0.5 w-full text-center">
+                      Visa numérique officiel
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* DOWNLOAD / PRINT PDF BUTTON (Primary Action) */}
           <div className="pt-2 print:hidden">
             <button
@@ -265,14 +314,38 @@ export default function EmployeeRequestStatusPage() {
             <div className="grid grid-cols-2 gap-8 text-xs text-slate-600">
               <div>
                 <p className="font-semibold text-slate-800">Signature de l'employé :</p>
-                <div className="mt-8 border-b border-dashed border-slate-300 w-48" />
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {request.firstName} {request.lastName} ({request.employeeNumber})
+                </p>
+                <div className="mt-12 border-b border-dashed border-slate-300 w-48" />
               </div>
-              <div className="text-right">
+
+              <div className="text-right flex flex-col items-end">
                 <p className="font-semibold text-slate-800">Visa & Cachet de la Direction :</p>
-                <div className="mt-2 text-[10px] text-slate-400">
-                  Document officiel généré électroniquement • Réf: {request.requestNumber}
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  {isApproved
+                    ? `Validé par ${request.signerName || "La Direction"}`
+                    : "Document officiel"} • Réf: {request.requestNumber}
                 </div>
-                <div className="mt-8 border-b border-dashed border-slate-300 w-48 ml-auto" />
+
+                {/* OVERLAID TRANSPARENT SIGNATURE ON PRINT */}
+                {isApproved && request.signatureUrl ? (
+                  <div className="mt-1 flex flex-col items-end">
+                    <div className="h-16 w-44 flex items-center justify-end relative">
+                      <img
+                        src={request.signatureUrl}
+                        alt="Signature Direction"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="border-b border-slate-400 w-48" />
+                    <span className="text-[9px] font-mono text-emerald-800 mt-1 font-semibold">
+                      DOCUMENT SIGNÉ ÉLECTRONIQUEMENT
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-12 border-b border-dashed border-slate-300 w-48" />
+                )}
               </div>
             </div>
           </div>

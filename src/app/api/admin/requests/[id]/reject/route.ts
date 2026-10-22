@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireTenantUser, handleApiError } from "@/lib/auth/guard";
+import { requireRequestApprover, handleApiError } from "@/lib/auth/guard";
 import { rejectLeaveRequest } from "@/lib/services/leave-requests";
 import { rejectLeaveRequestSchema } from "@/lib/validation/schemas";
 
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { user, organizationId } = await requireTenantUser();
+    const { user, organizationId } = await requireRequestApprover();
     const { id } = await params;
 
     const body = await req.json();

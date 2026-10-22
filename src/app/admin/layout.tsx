@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminLayout({
   children,
@@ -14,24 +13,16 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  if (session.role === "SUPER_ADMIN") {
-    redirect("/super-admin");
-  }
+  const orgName = session.organizationName || (session.role === "SUPER_ADMIN" ? "Super Administration" : "Mon Entreprise");
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <AdminSidebar
-        role={session.role}
-        organizationName={session.organizationName}
-      />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader
-          userName={session.name}
-          userEmail={session.email}
-          role={session.role}
-        />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8">{children}</main>
-      </div>
-    </div>
+    <AdminShell
+      role={session.role as any}
+      organizationName={orgName}
+      userName={session.name}
+      userEmail={session.email}
+    >
+      {children}
+    </AdminShell>
   );
 }

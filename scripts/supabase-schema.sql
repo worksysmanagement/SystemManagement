@@ -1,4 +1,4 @@
-﻿-- ====================================================
+-- ====================================================
 -- SUPABASE POSTGRESQL SCHEMA — SYSTEM MANAGEMENT
 -- ====================================================
 
@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS public.organizations (
   phone TEXT,
   address TEXT,
   status TEXT NOT NULL DEFAULT 'ACTIVE',
+  matricule_format TEXT DEFAULT 'INITIALS_BRANCH_SEQ',
+  matricule_prefix TEXT,
+  primary_currency TEXT DEFAULT 'HTG',
+  date_format TEXT DEFAULT 'DD/MM/YYYY',
+  language TEXT DEFAULT 'fr',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -20,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
 CREATE TABLE IF NOT EXISTS public.users (
   id TEXT PRIMARY KEY,
   organization_id TEXT REFERENCES public.organizations(id) ON DELETE CASCADE,
+  branch_id TEXT REFERENCES public.branches(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
@@ -33,13 +39,21 @@ CREATE TABLE IF NOT EXISTS public.users (
 CREATE TABLE IF NOT EXISTS public.employees (
   id TEXT PRIMARY KEY,
   organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  branch_id TEXT REFERENCES public.branches(id) ON DELETE SET NULL,
   employee_number TEXT NOT NULL,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
-  department TEXT NOT NULL,
-  position TEXT NOT NULL,
+  department TEXT,
+  position TEXT,
   phone TEXT NOT NULL,
   email TEXT,
+  birth_date TEXT,
+  study_domain TEXT,
+  blood_group TEXT,
+  medical_notes TEXT,
+  emergency_contact_name TEXT,
+  emergency_contact_relation TEXT,
+  emergency_contact_phone TEXT,
   status TEXT NOT NULL DEFAULT 'ACTIVE',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
@@ -49,6 +63,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
 CREATE TABLE IF NOT EXISTS public.leave_requests (
   id TEXT PRIMARY KEY,
   organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  branch_id TEXT REFERENCES public.branches(id) ON DELETE SET NULL,
   employee_id TEXT REFERENCES public.employees(id) ON DELETE SET NULL,
   request_number TEXT NOT NULL UNIQUE,
   first_name TEXT NOT NULL,
@@ -124,3 +139,49 @@ CREATE INDEX IF NOT EXISTS audit_org_idx ON public.audit_logs(organization_id);
 CREATE INDEX IF NOT EXISTS audit_req_idx ON public.audit_logs(leave_request_id);
 CREATE INDEX IF NOT EXISTS notif_org_idx ON public.notification_logs(organization_id);
 CREATE INDEX IF NOT EXISTS notif_req_idx ON public.notification_logs(leave_request_id);
+
+-- ====================================================
+-- ROW-LEVEL SECURITY (RLS) FOR DATA PROTECTION
+-- ====================================================
+ALTER TABLE IF EXISTS public.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.leave_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.notification_logs ENABLE ROW LEVEL SECURITY;
+
+-- 7. Table: Branches (Succursales)
+CREATE TABLE IF NOT EXISTS public.branches (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  city TEXT NOT NULL,
+  address TEXT,
+  manager_name TEXT,
+  phone TEXT,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS branches_org_idx ON public.branches(organization_id);
+CREATE INDEX IF NOT EXISTS branches_status_idx ON public.branches(status);
+ALTER TABLE IF EXISTS public.branches ENABLE ROW LEVEL SECURITY;
+
+-- 8. Table: Organization Roles (Matrice d'accès personnalisée par entreprise)
+CREATE TABLE IF NOT EXISTS public.organization_roles (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  hierarchy_level TEXT NOT NULL DEFAULT 'OPERATIONAL',
+  is_system BOOLEAN NOT NULL DEFAULT false,
+  permissions TEXT NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS roles_org_idx ON public.organization_roles(organization_id);
+ALTER TABLE IF EXISTS public.organization_roles ENABLE ROW LEVEL SECURITY;
+

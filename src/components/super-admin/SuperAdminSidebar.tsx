@@ -3,65 +3,102 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, PlusCircle } from "lucide-react";
 
 export function SuperAdminSidebar() {
   const pathname = usePathname();
 
-  const navItems = [
-    {
-      href: "/super-admin",
-      label: "Vue d'ensemble",
-      icon: LayoutDashboard,
-      exact: true,
-    },
-    {
-      href: "/super-admin/organizations",
-      label: "Entreprises clientes",
-      icon: Building2,
-      exact: true,
-    },
-    {
-      href: "/super-admin/organizations/new",
-      label: "Nouvelle entreprise",
-      icon: PlusCircle,
-      exact: true,
-    },
-  ];
+  const isLinkActive = (href: string) => {
+    return pathname === href;
+  };
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800">
-      <div className="h-16 flex items-center px-6 border-b border-slate-800">
-        <h2 className="text-base font-medium text-white truncate">
-          Super Admin
+    <aside className="w-64 bg-[#062653] text-[#F4F6F9] font-['Poppins',sans-serif] flex flex-col shrink-0 border-r border-[#031B3A] h-screen sticky top-0 overflow-hidden select-none">
+      {/* 1. TOP HEADER (Centré) */}
+      <div className="h-16 flex items-center justify-center px-4 bg-[#031B3A] border-b border-[#0D3E82]/40 shrink-0 text-center">
+        <h2 className="text-sm sm:text-base font-bold text-white truncate text-center">
+          Super-Administrateur
         </h2>
       </div>
 
-      <nav className="flex-1 px-3 py-6 space-y-1">
-        {navItems.map((item) => {
-          const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
+      {/* 2. NAVIGATION: Strictly 100% Text-Only (White Theme, No Apricot) */}
+      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+        <div>
+          <div className="px-3 pb-1.5 text-[11px] font-bold text-white uppercase tracking-wider">
+            PLATEFORME CENTRALE
+          </div>
+          <div className="space-y-0.5">
             <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? "text-indigo-400 font-semibold bg-slate-800/80"
-                  : "text-slate-400 font-medium hover:text-white hover:bg-slate-800/50"
+              href="/super-admin"
+              className={`block px-3 py-2 text-xs transition-colors rounded-lg ${
+                isLinkActive("/super-admin")
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              {item.label}
+              Vue d'ensemble
             </Link>
-          );
-        })}
+            <Link
+              href="/super-admin/organizations"
+              className={`block px-3 py-2 text-xs transition-colors rounded-lg ${
+                isLinkActive("/super-admin/organizations")
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Entreprises clientes
+            </Link>
+            <Link
+              href="/super-admin/onboarding-requests"
+              className={`block px-3 py-2 text-xs transition-colors rounded-lg ${
+                isLinkActive("/super-admin/onboarding-requests")
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Demandes d'adhésion en ligne
+            </Link>
+            <Link
+              href="/super-admin/organizations/new"
+              className={`block px-3 py-2 text-xs transition-colors rounded-lg ${
+                isLinkActive("/super-admin/organizations/new")
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Ajouter une entreprise
+            </Link>
+          </div>
+        </div>
+
+        <div>
+          <div className="px-3 pb-1.5 text-[11px] font-bold text-white uppercase tracking-wider">
+            ESPACE ENTREPRISE
+          </div>
+          <div className="space-y-0.5">
+            <Link
+              href="/admin/dashboard"
+              className={`block px-3 py-2 text-xs transition-colors rounded-lg ${
+                pathname.startsWith("/admin")
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-slate-300 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Accéder au module Entreprise →
+            </Link>
+          </div>
+        </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="text-[11px] text-slate-500 text-center">
-          Plateforme Multi-Tenant v1.0
-        </div>
+      {/* 3. FIXED BOTTOM FOOTER: Official RKonekte Emblem (reduced & sleek) */}
+      <div className="py-2.5 px-3 bg-[#031B3A] border-t border-[#0D3E82]/40 shrink-0 flex flex-col items-center justify-center">
+        <img
+          src="/logo-rk-emblem.png"
+          alt="RKonekte"
+          className="h-8 w-auto max-w-[120px] object-contain"
+        />
+        <span className="text-[8px] text-slate-400 mt-1 uppercase tracking-widest font-semibold">
+          Super-Administration
+        </span>
       </div>
     </aside>
   );

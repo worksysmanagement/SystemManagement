@@ -11,6 +11,48 @@ import { hashPassword } from "../src/lib/auth/password";
 import { sql } from "drizzle-orm";
 
 export async function seedDatabase(dbInstance?: any) {
+  if (!dbInstance) {
+    const { getSupabaseAdminClient } = await import("../src/lib/supabase/server");
+    const supabase = getSupabaseAdminClient();
+    console.log("🌱 Seeding Supabase Cloud database...");
+    const now = Date.now();
+
+    const pitonAdminPass = await hashPassword("pitonrp8");
+    const superAdminPass = await hashPassword("SuperAdmin2026!");
+
+    const initialUsers = [
+      {
+        id: "usr-piton-super-admin",
+        organization_id: null,
+        name: "Rodjy Piton",
+        email: "pitonrodjy@gmail.com",
+        password_hash: pitonAdminPass,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: "usr-super-admin",
+        organization_id: null,
+        name: "Super Administrateur Plateforme",
+        email: "superadmin@platform.local",
+        password_hash: superAdminPass,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+        created_at: now,
+        updated_at: now,
+      },
+    ];
+
+    for (const u of initialUsers) {
+      await supabase.from("users").upsert(u as any);
+    }
+
+    console.log("✅ Supabase seeded with Super Admin accounts (organizations kept blank for test phase).");
+    return;
+  }
+
   const db = dbInstance || getDb();
   await runMigrations(db);
 
